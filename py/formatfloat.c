@@ -29,6 +29,7 @@
 #if MICROPY_FLOAT_IMPL != MICROPY_FLOAT_IMPL_NONE
 
 #include <assert.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
@@ -167,13 +168,13 @@ int mp_format_float(FPTYPE f, char *buf, size_t buf_size, char fmt, int prec, ch
         e = 0;
         if (fmt == 'f') {
             // Truncate precision to prevent buffer overflow
-            if (prec + 2 > buf_remaining) {
+            if (prec > buf_remaining - 2) {
                 prec = buf_remaining - 2;
             }
             num_digits = prec + 1;
         } else {
             // Truncate precision to prevent buffer overflow
-            if (prec + 6 > buf_remaining) {
+            if (prec > buf_remaining - 6) {
                 prec = buf_remaining - 6;
             }
             if (fmt == 'e') {
@@ -201,12 +202,12 @@ int mp_format_float(FPTYPE f, char *buf, size_t buf_size, char fmt, int prec, ch
             fmt = 'f';
             dec = 0;
 
-            if (org_fmt == 'g') {
+            if (org_fmt == 'g' && prec <= INT_MAX - (e - 1)) {
                 prec += (e - 1);
             }
 
             // truncate precision to prevent buffer overflow
-            if (prec + 2 > buf_remaining) {
+            if (prec > buf_remaining - 2) {
                 prec = buf_remaining - 2;
             }
 
@@ -248,7 +249,7 @@ int mp_format_float(FPTYPE f, char *buf, size_t buf_size, char fmt, int prec, ch
         if (fmt == 'f') {
             if (e >= buf_remaining) {
                 fmt = 'e';
-            } else if ((e + prec + 2) > buf_remaining) {
+            } else if (prec > buf_remaining - e - 2) {
                 prec = buf_remaining - e - 2;
                 if (prec < 0) {
                     // This means no decimal point, so we can add one back
@@ -262,7 +263,7 @@ int mp_format_float(FPTYPE f, char *buf, size_t buf_size, char fmt, int prec, ch
         }
         if (fmt == 'g') {
             // Truncate precision to prevent buffer overflow
-            if (prec + (FPMIN_BUF_SIZE - 1) > buf_remaining) {
+            if (prec > buf_remaining - (FPMIN_BUF_SIZE - 1)) {
                 prec = buf_remaining - (FPMIN_BUF_SIZE - 1);
             }
         }
